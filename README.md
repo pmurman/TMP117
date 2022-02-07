@@ -95,8 +95,13 @@ Driver initialization:
   //            |           |              |       |  |
   //            |           |              |       |  +-- sensor ID
   //            |           |              |       +-- enable write lo/hi temp to EEPROM
+<<<<<<< HEAD
   //            |           |              +-- ignored (POR = 1)
   //            |           +-- ignored (POR = 1)
+=======
+  //            |           |              +-- ignored
+  //            |           +-- ignored
+>>>>>>> 39964035efafb79809f6d84a99fd9dbda74f0c40
   //            +-- use POR initialization 
 ```
 

@@ -5,8 +5,12 @@
 #define Sensor_serviced(s) (1u << s)
 #define All_sensors(s) ((1u << s) - 1)
 
+<<<<<<< HEAD
 const bool por = 0;                       // 0: run TMP117 Power-Up Reset configuration initialization
                                           // 1: TMP117 POR is configured (see setup())
+=======
+const bool por = 1;                       // 0: run TMP117 Power-Up Reset configuration initialization. 1: TMP117 POR is configured (see setup())
+>>>>>>> 39964035efafb79809f6d84a99fd9dbda74f0c40
 
 enum par { T_NOW, T_MIN, T_MAX };         // TMP117 Data parameters: actual temperatur and lowest / highest temperatures
 
