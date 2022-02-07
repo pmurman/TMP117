@@ -27,20 +27,10 @@ class TMP117 {
   public:
               TMP117(const uint8_t, const uint8_t, void (*)(void), void (*)(nodeError_t));
     // Register Map
-<<<<<<< HEAD
-=======
-    // The absolute lowest sensor temperature 'ever' is stored in the THigh_Limit register,
-    // the highest temperature ever in TLow_Limit, because of the factory-programmed reset values:
-    // THigh_Limit = 192 degC and TLow_Limit = -256 degC.
->>>>>>> 39964035efafb79809f6d84a99fd9dbda74f0c40
     enum TMP117_reg   { temp_r, conf_r, thl_r, tll_r, eep_ul_r, eep1_r, eep2_r, t_offset_r, eep3_r };
     // Supported Config Register Fields
     enum TMP117_mod   { shutdown = 0x0400, one_shot = 0x0C00 };
     enum TMP117_avg   { no_avg = 0x0000, avg8 = 0x0020, avg32 = 0x0040, avg64 = 0x0060 };
-<<<<<<< HEAD
-=======
-    enum TMP117_alert { drdy = 0x0004 };
->>>>>>> 39964035efafb79809f6d84a99fd9dbda74f0c40
 
     void      init(const bool por_init, TMP117_mod mode, TMP117_avg averaging, const bool save_min_max_in_eeprom, uint8_t sensor_id);
     bool      initPowerUpSettings(void);
@@ -54,10 +44,7 @@ class TMP117 {
   private:
     // EEPROM Unlock Register Fields
     enum TMP117_eeprom_ul { eep_unlock = 0x8000, eep_busy = 0x4000 };
-<<<<<<< HEAD
     enum TMP117_alert { drdy = 0x0004 };
-=======
->>>>>>> 39964035efafb79809f6d84a99fd9dbda74f0c40
   
     const uint8_t address_;
     const uint8_t alertPin_;
