@@ -9,7 +9,7 @@
  * v1.0.0   - Initial version
  * 
  * The purpose of this example is to demonstrate the use of the TMP117 'Lite' driver functionality
- * in an IOT (multi-)sensor application. 
+ * in a (multi-)sensor application. 
  * 
  * For detailed information please see README.md.
  */
@@ -18,12 +18,12 @@
 #include "tmp117_example.h"
 #include "TMP117.h"
 
-static uint8_t sensorCount = 0;           // keep track of # available sensors
+static uint8_t sensorCount = 0;           // keep track of available sensors
 static uint32_t sensorsServiced;          // sensor n sets bit[n] when serviced after issuing sensor ready interrupt
 static int16_t temperature;
 static uint32_t startTime;
 
-TMP117 TempSensor(ADD0_TO_VCC,            // use default Bluedot configuration
+TMP117 TempSensor(ADD0_TO_VCC,            // default Bluedot configuration
                   TMP117_ALERT,           // interrupt wiring: TMP117-Alert -> SAMD21G-PA11/MUX_PA11B_ADC_AIN19
                   TempSensorReady,        // callback to handle sensor ready interrupt
                   Error                   // callback (optional)
@@ -38,9 +38,10 @@ void setup() {
   digitalWrite(LED_BLUE, HIGH); // off
 
   // initialize sensor
-  TempSensor.init(por,                    // if 1: use Power-Up Reset configuration stored in EEPROM - if 0: use supplied configuration values 
-                  TMP117::shutdown,   // mode
-                  TMP117::avg8,       // averaging
+  TempSensor.init(por,                    // 1: use Power-Up Reset configuration stored in EEPROM
+                                          // 0: use supplied configuration values 
+                  TMP117::shutdown,       // mode
+                  TMP117::avg8,           // averaging
                   0,                      // if 1: store lowest/highest temp. values in EEPROM
                   sensorCount++           // assign unique id to sensor (0-31)
                  );
@@ -54,7 +55,7 @@ void setup() {
   SerialUSB.print(tempMax * TMP117_RES, 2);
   SerialUSB.println("°C");
 
-// See 'README2.md'
+// See 'README.md'
   if (!por) {
     if (TempSensor.initPowerUpSettings())
       SerialUSB.println("Error writing configuration to TMP117 EEPROM");
