@@ -5,7 +5,7 @@
  * 
  * @brief   Driver for TI's TMP117 temperature sensor.
  * 
- * @license Licensed under license.txt
+ * @license MIT License (see license.txt)
  * 
  * v1.0.0   - Initial version 
  * 
@@ -44,16 +44,14 @@ TMP117::TMP117(const uint8_t a, uint8_t p, void (*f)(void), void (*e)(nodeError_
 }
 
 /**
- * @brief Initialize MCU-sensor interface and conversion settings
+ * @brief Initialize driver - device POR initialization is replaced by supplied SW values. Use init(), unless device must be setup for programming.
  *
- * @param por When set, use Power-On Reset configuration stored in EEPROM - ignore convMode, avgs settings
- * @param mode (ignored if por set) Sensor conversion mode (only [SHUTDOWN, ONE_SHOT] are used)
- * @param averaging (ignored if por set) Number of conversion results to be averaged [NO_AVG, AVG8, AVG32, AVG64]
+ * @param mode Sensor conversion mode (only [SHUTDOWN, ONE_SHOT] are used)
+ * @param averaging Number of conversion results to be averaged [NO_AVG, AVG8, AVG32, AVG64]
  * @param saveMinMax When set, write Min/Max temperatures to EEPROM
  * @param sensorId Sensor # (0-31) assigned to this sensor
  */
-void TMP117::init(bool porInit, TMP117_mod mode, TMP117_avg averaging, bool saveMinMax, uint8_t sensorId) {
-  porInit_ = porInit;
+void TMP117::initSetup(TMP117_mod mode, TMP117_avg averaging, bool saveMinMax, uint8_t sensorId) {
   saveTemp_ = saveMinMax;
   thisSensor_ = sensorId;
 
@@ -63,13 +61,27 @@ void TMP117::init(bool porInit, TMP117_mod mode, TMP117_avg averaging, bool save
   minTemp_ = i2cRead2B(thl_r);
   maxTemp_ = i2cRead2B(tll_r);
 
-  if (porInit_)
-    return;
-  
   // use supplied conversion settings
   config_ = i2cRead2B(conf_r) & TMP117_MOD_CLR_MASK & TMP117_AVG_CLR_MASK;
   config_ |= mode | averaging | drdy; // (+ set Alert pin to data ready flag)
   i2cWrite2B(conf_r, config_);
+}
+
+/**
+ * @brief Same as initSoft(), but does not set the device configuration. Use once device POR configuration is stored in EEPROM.
+ *
+ * @param saveMinMax When set, write Min/Max temperatures to EEPROM
+ * @param sensorId Sensor # (0-31) assigned to this sensor
+ */
+void TMP117::init(bool saveMinMax, uint8_t sensorId) {
+  saveTemp_ = saveMinMax;
+  thisSensor_ = sensorId;
+
+  Wire.begin();
+  while (i2cRead2B(eep_ul_r) & eep_busy) ; // POR sequence
+
+  minTemp_ = i2cRead2B(thl_r);
+  maxTemp_ = i2cRead2B(tll_r);
 }
 
 /**
@@ -93,11 +105,8 @@ bool TMP117::initPowerUpSettings(void) {
     err |= progEeprom(tll_r, maxTemp_);
   if (i2cRead2B(thl_r) != minTemp_)
     err |= progEeprom(thl_r, minTemp_);
-  porInit_ = (i2cRead2B(conf_r) & TMP117_CONF_RD) == (config_ & TMP117_CONF_RD);
-  if (!porInit_) {
-    porInit_ = !progEeprom(conf_r, config_);
-    err |= !porInit_;
-  }
+  if ((i2cRead2B(conf_r) & TMP117_CONF_RD) != (config_ & TMP117_CONF_RD))
+    err |= progEeprom(conf_r, config_);
 
   return err;
 }
@@ -146,7 +155,7 @@ int16_t TMP117::getTemperature(par p = T_NOW) {
 /**
  * @brief Read sensor temperature, update actual and historic min/max values if needed
  *
- * @param sensorReadStat Global conversion status of all sensors - sensor must clear its unread bit
+ * @param sensorsServiced Global status of all sensors - sensor must set 'its' bit when serviced
  * @returns Most recent temperature
  */
 int16_t TMP117::readSensor(uint32_t * const sensorsServiced) {

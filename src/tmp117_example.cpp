@@ -37,14 +37,21 @@ void setup() {
   pinMode(LED_BLUE,OUTPUT);
   digitalWrite(LED_BLUE, HIGH); // off
 
-  // initialize sensor
-  TempSensor.init(por,                    // 1: use Power-Up Reset configuration stored in EEPROM
-                                          // 0: use supplied configuration values 
-                  TMP117::shutdown,       // mode
-                  TMP117::avg8,           // averaging
-                  0,                      // if 1: store lowest/highest temp. values in EEPROM
-                  sensorCount++           // assign unique id to sensor (0-31)
-                 );
+  // initialize sensor in case of 1st time use, or when reprogramming Power-Up Reset setting
+  const bool programTMP117 = true; // true to program TMP117 Power-Up Reset EEPROM
+  if (programTMP117) {
+    TempSensor.initSetup(TMP117::shutdown, TMP117::avg8, 0, sensorCount++);
+    if (TempSensor.initPowerUpSettings())
+      SerialUSB.println("Error writing configuration to TMP117 EEPROM");
+    else {
+      SerialUSB.println("TMP117 configuration saved in EEPROM.\n"
+                        "set programTMP117 to false and rebuild program.\n"
+                        "Program ends here...");
+      while (true == true) ;
+    }
+  }
+  else
+    TempSensor.init(0, sensorCount++); // typical use after POR is programmed
   
   // read lowest/highest temperatures stored in the sensor's EEPROM
   int16_t tempMin = TempSensor.getTemperature(T_MIN);
@@ -57,14 +64,7 @@ void setup() {
 
 // See 'README.md'
   if (!por) {
-    if (TempSensor.initPowerUpSettings())
-      SerialUSB.println("Error writing configuration to TMP117 EEPROM");
-    else {
-      SerialUSB.println("TMP117 configuration saved in EEPROM.\n"
-                        "Set 'por' to 1 in 'tmp117_example.h' and rebuild program.\n"
-                        "Program ends here...");
-      while (true == true) ;
-    }
+ 
   }
 
 // Delete the next line to wait a minute for the first temperature reading.

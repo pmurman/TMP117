@@ -37,36 +37,46 @@ Signal wiring between BlueDot and SODAQ board:
 
 ## Initialization
 
+Two initialization functions are available:
+
 ```cpp
-  <sensor>.init(const bool por_init,
+  <sensor>.initSetup(
                 TMP117_mod mode,
                 TMP117_avg averaging,
                 const bool save_min_max_in_eeprom,
-                uint8_t sensor_id)
+                uint8_t sensor_id
+                )
 ```
 
-|  *parameter*             | *description*                                                                 |
-|--------------------------|-------------------------------------------------------------------------------|
-| `por_init`               | 0: perform SW initialization of TMP117 using `mode` and `averaging` values    |
-|                          | 1: use Power-Up Reset configuration stored in EEPROM, no CPU/I<sup>2</sup>C overhead |
-| `mode`                   | recommended mode: TMP117::shutdown                                            |
-| `averaging`              | recommended value: TMP117::avg8                                               |
-| `save_min_max_in_eeprom` | (only after sensor read-out by `<sensor>.readSensor()`)                       |
-|                          | 0: do not update lowest/highest temperatures in EEPROM                        |
-|                          | 1: update lowest/highest temperatures in EEPROM, when changed > 0.047°C       |
-| `sensor_id`              | assign id to sensor (0-31)                                                    |
+```cpp
+  <sensor>.init(
+                const bool save_min_max_in_eeprom,
+                uint8_t sensor_id
+                )
+```
 
-### Power-On Reset programming
+|  *function (parameter)*  | *description*
+---------------------------|-------------------------------------------------------------------------------
+| `initSetup()`            | perform SW setup of TMP117 using `mode` and `averaging` values
+| `init()`                 | use Power-Up Reset configuration stored in EEPROM, no CPU/I<sup>2</sup>C overhead
+| `mode`                   | recommended mode: TMP117::shutdown
+| `averaging`              | recommended value: TMP117::avg8
+| `save_min_max_in_eeprom` | (only after sensor read-out by `<sensor>.readSensor()`)
+| | 0: do not update lowest/highest temperatures in EEPROM
+| | 1: update lowest/highest temperatures in EEPROM, when changed > 0.047°C
+| `sensor_id`              | assign id to sensor (0-31)
+
+### Power-On Reset Programming
 
 The TMP117 has the ability to store a Power-Up Reset (POR) setting in its EEPROM. This POR value is loaded into the
 configuration register during the TMP117 power-up cycle and does not require initialization by software.  
-To program a POR configuration, initialize TMP117 with the desired setting and store in EEPROM:
+To program a POR configuration, initialize TMP117 with the desired setting and store this in EEPROM:
 
 ```cpp
-  // initialize TMP117 to shutdown-and-avg8 mode, no EEPROM updates of lo/hi temperature, sensor ID = 0
-  <sensor>.init(0, TMP117::shutdown, TMP117::avg8, 0, 0)
+  // Set TMP117 to shutdown-and-avg8 mode, do not write lo/hi temperature to EEPROM, sensor ID = 0
+  <sensor>.initSetup(TMP117::shutdown, TMP117::avg8, 0, 0)
 
-  // store TMP117 configuration in EEPROM, reset lo/hi EEPROM registers to factory values
+  // write TMP117 configuration to EEPROM, reset lo/hi EEPROM registers to factory values
   // returns true on failure, false if ok
   <sensor>.initPowerUpSettings()                  
 ```
@@ -75,29 +85,25 @@ When done, change this to:
 
 ```cpp
   // use POR initialization only (mode/averaging are ignored), no EEPROM updates of lo/hi temperature, sensor ID = 0
-  <sensor>.init(1, TMP117::shutdown, TMP117::avg8, 0, 0)
-  
-  //<sensor>.initPowerUpSettings()        <--- no longer needed - POR has been setup
+  <sensor>.init(0, 0)
 ```
 
 POR programming using the Example program:
 
-1. Set the value of the constant `por` to `0` in `tmp117_example.h` and build, load and run `tmp117_example`
+1. In `tmp117_example.cpp`, make sure `programTMP117` is set to `true` and build, load and run `tmp117_example`
 2. Program prints out the lowest/highest temperature values before they are reset and stops after programming the EEPROM  (`"... Program ends here..."`).
-3. Change the value of `por` to `1` and build, load and run the example again. No SW initialization is done; the TMP117 uses the stored POR configuration setting.
+3. Change the value of `programTMP117` to `false` and build, load and run the example again. No SW initialization is done; the TMP117 uses the stored POR configuration setting.
 
 ### Capturing Lowest/Highest Temperatures
 
 Driver initialization:
 
 ```cpp
-  <sensor>.init(1, TMP117::shutdown, TMP117::avg8, 1, 0) // enable writing lowest/highest temperature to EEPROM
-  //            |           |              |       |  |
-  //            |           |              |       |  +-- sensor ID
-  //            |           |              |       +-- enable write lo/hi temp to EEPROM
-  //            |           |              +-- ignored (POR = 1)
-  //            |           +-- ignored (POR = 1)
-  //            +-- use POR initialization 
+  <sensor>.init(1, 0) // enable writing lowest/highest temperature to EEPROM
+  //            |  |
+  //            |  +-- sensor ID
+  //            +-- enable write lo/hi temp to EEPROM
+
 ```
 
 The driver keeps track of the lowest and highest temperatures. It also stores these values in TMP117 EEPROM when

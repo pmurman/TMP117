@@ -31,8 +31,10 @@ class TMP117 {
     // Supported Config Register Fields
     enum TMP117_mod   { shutdown = 0x0400, one_shot = 0x0C00 };
     enum TMP117_avg   { no_avg = 0x0000, avg8 = 0x0020, avg32 = 0x0040, avg64 = 0x0060 };
+    enum TMP117_alert { drdy = 0x0004 };
 
-    void      init(const bool por_init, TMP117_mod mode, TMP117_avg averaging, const bool save_min_max_in_eeprom, uint8_t sensor_id);
+    void      initSetup(TMP117_mod mode, TMP117_avg averaging, const bool save_min_max_in_eeprom, uint8_t sensor_id);
+    void      init(const bool save_min_max_in_eeprom, uint8_t sensor_id);
     bool      initPowerUpSettings(void);
     void      softReset(void);
     void      setAveraging(TMP117_avg averaging);
@@ -44,11 +46,9 @@ class TMP117 {
   private:
     // EEPROM Unlock Register Fields
     enum TMP117_eeprom_ul { eep_unlock = 0x8000, eep_busy = 0x4000 };
-    enum TMP117_alert { drdy = 0x0004 };
   
     const uint8_t address_;
     const uint8_t alertPin_;
-    bool      porInit_;
     uint8_t   thisSensor_;
     int16_t   actualTemp_;
     int16_t   minTemp_;
