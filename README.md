@@ -55,13 +55,13 @@ Two initialization functions are available:
                 )
 ```
 
-|  *function (parameter)*  | *description*
+|  *function  / parameter*  | *description*
 ---------------------------|-------------------------------------------------------------------------------
 | `initSetup()`            | perform SW setup of TMP117 using `mode` and `averaging` values
 | `init()`                 | use Power-Up Reset configuration stored in EEPROM, no CPU/I<sup>2</sup>C overhead
 | `mode`                   | recommended mode: TMP117::shutdown
 | `averaging`              | recommended value: TMP117::avg8
-| `save_min_max_in_eeprom` | (only after sensor read-out by `<sensor>.readSensor()`)
+| `save_min_max_in_eeprom` | (setting for `<sensor>.readSensor()`)
 | | 0: do not update lowest/highest temperatures in EEPROM
 | | 1: update lowest/highest temperatures in EEPROM, when changed > 0.047°C
 | `sensor_id`              | assign id to sensor (0-31)
@@ -90,9 +90,9 @@ When done, change this to:
 
 POR programming using the Example program:
 
-1. In `tmp117_example.cpp`, make sure `programTMP117` is set to `true` and build, load and run `tmp117_example`
+1. In `tmp117_example.cpp`, make sure `setupDone` is set to `false` and build, load and run `tmp117_example`
 2. Program prints out the lowest/highest temperature values before they are reset and stops after programming the EEPROM  (`"... Program ends here..."`).
-3. Change the value of `programTMP117` to `false` and build, load and run the example again. No SW initialization is done; the TMP117 uses the stored POR configuration setting.
+3. Change the value of `setupDone` to `true` and build, load and run the example again. The TMP117 uses the stored POR configuration setting - no SW initialization required.
 
 ### Capturing Lowest/Highest Temperatures
 
@@ -111,9 +111,7 @@ The driver keeps track of the lowest and highest temperatures. It also stores th
 This feature can be used to capture the lowest and highest temperatures over a longer measurement period
 without requiring any external data logging.
 
-Before enabeling EEPROM writes, make sure the lowest/highest EEPROM values have been reset first.  
-A reset is done by `<sensor>.initPowerUpSettings()` (above). When the measurements must be done at another location, make sure
-the device is turned off/unplugged before temperature measurement begins after enabling writing lo/hi to EEPROM.  
-Otherwise the reset values of lo/hi will be overwritten by the temperature at the programming location causing
-lo/hi readings at the measurement site become useless.  
-This can be avoided by adding a 10 second delay before starting the temperature readings.
+Before enabeling EEPROM writes, make sure the lowest/highest EEPROM values are reset to their factory values.  
+A reset is done by `<sensor>.initPowerUpSettings()` (above).
+After a reset, make sure no temperature readings are taken until the device is at the intended measurement location,
+to avoid incorrect lowest/highest values being stored in EEPROM.

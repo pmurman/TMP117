@@ -34,24 +34,24 @@ void setup() {
   while (!SerialUSB) ;
   SerialUSB.println("-- Temperature measurement using TMP117 --");
 
-  pinMode(LED_BLUE,OUTPUT);
+  pinMode(LED_BLUE, OUTPUT);
   digitalWrite(LED_BLUE, HIGH); // off
 
   // initialize sensor in case of 1st time use, or when reprogramming Power-Up Reset setting
-  const bool programTMP117 = true; // true to program TMP117 Power-Up Reset EEPROM
-  if (programTMP117) {
+  const bool setupDone = false; // set to false to program TMP117 Power-Up Reset EEPROM
+  if (!setupDone) {
     TempSensor.initSetup(TMP117::shutdown, TMP117::avg8, 0, sensorCount++);
     if (TempSensor.initPowerUpSettings())
       SerialUSB.println("Error writing configuration to TMP117 EEPROM");
     else {
       SerialUSB.println("TMP117 configuration saved in EEPROM.\n"
-                        "set programTMP117 to false and rebuild program.\n"
+                        "change 'setupDone' to true and rebuild program.\n"
                         "Program ends here...");
       while (true == true) ;
     }
   }
   else
-    TempSensor.init(0, sensorCount++); // typical use after POR is programmed
+    TempSensor.init(0, sensorCount++); // typical use after TMP117 POR is programmed
   
   // read lowest/highest temperatures stored in the sensor's EEPROM
   int16_t tempMin = TempSensor.getTemperature(T_MIN);
@@ -62,14 +62,9 @@ void setup() {
   SerialUSB.print(tempMax * TMP117_RES, 2);
   SerialUSB.println("°C");
 
-// See 'README.md'
-  if (!por) {
- 
-  }
-
-// Delete the next line to wait a minute for the first temperature reading.
-// This gives the opportunity to turn off the device and prevent lo/hi values ​​from this location
-// from being written to EEPROM when the temp. measurement is to be performed at another location.
+// The first sensor reading after (re-)programming the POR settings will also set the lo/hi values in EEPROM to the measured temperature.
+// Delete the next line to wait one minute before taking the first temperature reading.
+// This allows the device to be turned off and installed at the measurement site before EEPROM data is changed.
   StartTempSensor(); 
 }
 

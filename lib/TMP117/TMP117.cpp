@@ -18,10 +18,10 @@
  * - Keeps track of `lowest ever` and `highest ever` min/max temperatures in EEPROM
  * - Temperature data available after a One-Shot conversion:
  *    . Actual temperature
- *    . Min / Max temperature(s), when changed
- * - Data Ready callback 
+ *    . Min / Max temperature(s)
+ * - Data Ready callback
  * - Uses shutdown mode to minimize power consumption (250nA)
- * - Power-On Reset (POR) setting for production use - no software initialization overhead
+ * - Power-On Reset (POR) setting for production use reducing software initialization overhead
  * - Error feedback after EEPROM write failure
  */
 
@@ -39,36 +39,10 @@
  * @param e Error handler (optional)
  */
 TMP117::TMP117(const uint8_t a, uint8_t p, void (*f)(void), void (*e)(nodeError_t)) : address_(a), alertPin_(p), isr_(f), error_(e = nullptr) {
-  pinMode(alertPin_, INPUT);
-  attachInterrupt(alertPin_, isr_ , FALLING);
 }
 
 /**
- * @brief Initialize driver - device POR initialization is replaced by supplied SW values. Use init(), unless device must be setup for programming.
- *
- * @param mode Sensor conversion mode (only [SHUTDOWN, ONE_SHOT] are used)
- * @param averaging Number of conversion results to be averaged [NO_AVG, AVG8, AVG32, AVG64]
- * @param saveMinMax When set, write Min/Max temperatures to EEPROM
- * @param sensorId Sensor # (0-31) assigned to this sensor
- */
-void TMP117::initSetup(TMP117_mod mode, TMP117_avg averaging, bool saveMinMax, uint8_t sensorId) {
-  saveTemp_ = saveMinMax;
-  thisSensor_ = sensorId;
-
-  Wire.begin();
-  while (i2cRead2B(eep_ul_r) & eep_busy) ; // POR sequence
-
-  minTemp_ = i2cRead2B(thl_r);
-  maxTemp_ = i2cRead2B(tll_r);
-
-  // use supplied conversion settings
-  config_ = i2cRead2B(conf_r) & TMP117_MOD_CLR_MASK & TMP117_AVG_CLR_MASK;
-  config_ |= mode | averaging | drdy; // (+ set Alert pin to data ready flag)
-  i2cWrite2B(conf_r, config_);
-}
-
-/**
- * @brief Same as initSoft(), but does not set the device configuration. Use once device POR configuration is stored in EEPROM.
+ * @brief Entry point when device POR configuration has been setup using initSetup()
  *
  * @param saveMinMax When set, write Min/Max temperatures to EEPROM
  * @param sensorId Sensor # (0-31) assigned to this sensor
@@ -76,12 +50,31 @@ void TMP117::initSetup(TMP117_mod mode, TMP117_avg averaging, bool saveMinMax, u
 void TMP117::init(bool saveMinMax, uint8_t sensorId) {
   saveTemp_ = saveMinMax;
   thisSensor_ = sensorId;
+  pinMode(alertPin_, INPUT);
+  attachInterrupt(alertPin_, isr_, FALLING);
 
   Wire.begin();
   while (i2cRead2B(eep_ul_r) & eep_busy) ; // POR sequence
 
   minTemp_ = i2cRead2B(thl_r);
   maxTemp_ = i2cRead2B(tll_r);
+}
+
+/**
+ * @brief Modify device POR initialization settings in EEPROM.
+ *
+ * @param mode Sensor conversion mode (only [SHUTDOWN, ONE_SHOT] are used)
+ * @param averaging Number of conversion results to be averaged [NO_AVG, AVG8, AVG32, AVG64]
+ * @param saveMinMax When set, write Min/Max temperatures to EEPROM
+ * @param sensorId Sensor # (0-31) assigned to this sensor
+ */
+void TMP117::initSetup(TMP117_mod mode, TMP117_avg averaging, bool saveMinMax, uint8_t sensorId) {
+  init(saveMinMax, sensorId);
+
+  // program device confiuration
+  config_ = i2cRead2B(conf_r) & TMP117_MOD_CLR_MASK & TMP117_AVG_CLR_MASK;
+  config_ |= mode | averaging | drdy; // (+ set Alert pin to data ready flag)
+  i2cWrite2B(conf_r, config_);
 }
 
 /**
@@ -162,7 +155,7 @@ int16_t TMP117::readSensor(uint32_t * const sensorsServiced) {
   actualTemp_ = i2cRead2B(temp_r);
 
   // only update Min / Max when changed at least 6 * 7.8125m°C = .047°C, keeping # EEPROM writes low* and save little energy
-  // *) ex: storing every .047°C change over a range of 100°C takes 2128 EEPROM writes
+  // *) note: storing every .047°C change over a range of 100°C takes 2128 EEPROM writes
   if (actualTemp_ <= minTemp_ - 6) {
     minTemp_ = actualTemp_;
     if (saveTemp_) 
@@ -231,7 +224,7 @@ bool TMP117::progEeprom(TMP117_reg reg, int16_t val, int8_t retries) {
   i2cWrite2B(eep_ul_r, eep_unlock);
   i2cWrite2B(reg, val); // start programming operation
   while (i2cRead2B(eep_ul_r) & eep_busy) ;
-  // ~7ms later
+  // ≈7ms later
 
   // issue I2C general-call reset to lock EEPROM and reload R/W registers from EEPROM
   Wire.beginTransmission(0x00); // general call address
@@ -239,7 +232,7 @@ bool TMP117::progEeprom(TMP117_reg reg, int16_t val, int8_t retries) {
   Wire.endTransmission();
 
   while (i2cRead2B(eep_ul_r) & eep_busy) ;
-  // ~1.5ms later
+  // ≈1.5ms later
  
   int16_t check = i2cRead2B(reg);
   if (reg == conf_r) {

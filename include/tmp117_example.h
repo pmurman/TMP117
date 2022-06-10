@@ -10,7 +10,7 @@ enum par { T_NOW, T_MIN, T_MAX };         // TMP117 Data parameters: actual temp
 typedef enum {
   E_S0 = 0,                               // error reported by sensor0 driver
                                           // reserve e.g. E_S1, ...E_S7 for additional sensors
-                                          // other errors
+
   E_NO_DATA = 8,                          // application did not receive data from all sensors
 } nodeError_t; 
 
